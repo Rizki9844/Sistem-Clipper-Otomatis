@@ -1,15 +1,13 @@
 # ============================================================
 # Heroku Docker Deploy Configuration
 # ============================================================
-# Alternative to Procfile-based deployment.
-# Use: heroku stack:set container && git push heroku main
+# Only deploys the WEB (API) service to Heroku.
+# Worker deploys separately to Koyeb (free tier).
 # ============================================================
 
 build:
   docker:
     web: Dockerfile
-    worker: Dockerfile.worker
 
 run:
   web: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
-  worker: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
