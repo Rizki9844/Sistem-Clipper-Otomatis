@@ -1,0 +1,61 @@
+# ==============================================================
+# AutoClipperPro — Python Dependencies
+# ==============================================================
+# Backend: FastAPI + Celery + MongoDB + Azure + AI
+# ==============================================================
+
+# ---- Core Framework ----
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+pydantic==2.6.1
+pydantic-settings==2.1.0
+
+# ---- Database (MongoDB) ----
+motor==3.3.2
+beanie==1.25.0
+pymongo==4.6.1
+
+# ---- Task Queue ----
+celery[redis]==5.3.6
+redis==5.0.1
+
+# ---- Azure Services ----
+azure-storage-blob==12.19.0
+azure-identity==1.15.0
+
+# ---- AI / ML ----
+google-generativeai==0.8.4
+openai-whisper==20231117
+
+# ---- Video Processing ----
+ffmpeg-python==0.2.0
+moviepy==1.0.3
+Pillow==10.2.0
+opencv-python-headless==4.9.0.80
+mediapipe==0.10.11
+
+# ---- Video Download ----
+yt-dlp==2024.3.10
+
+# ---- HTTP Client ----
+httpx==0.27.0
+
+# ---- Logging ----
+structlog==24.1.0
+
+# ---- Monitoring ----
+sentry-sdk[fastapi,celery]==1.40.0
+
+# ---- Utilities ----
+python-dotenv==1.0.1
+python-multipart==0.0.9
+
+# ---- Testing ----
+pytest==8.0.0
+pytest-asyncio==0.23.4
+pytest-cov==4.1.0
+httpx==0.27.0
+
+# ---- Security ----
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4

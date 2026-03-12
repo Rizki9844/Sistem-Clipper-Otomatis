@@ -1,0 +1,88 @@
+# ============================================================
+# Automated Video Clipper — Local Development Environment
+# ============================================================
+# Usage: docker-compose up -d
+# ============================================================
+
+version: "3.9"
+
+services:
+  # -----------------------------------------------------------
+  # Redis — Message Broker & Cache (mimic Azure Cache for Redis)
+  # -----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: clipper-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # MongoDB — Database (mimic MongoDB Atlas)
+  # -----------------------------------------------------------
+  mongodb:
+    image: mongo:7
+    container_name: clipper-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: clipper_admin
+      MONGO_INITDB_ROOT_PASSWORD: clipper_dev_password
+      MONGO_INITDB_DATABASE: clipper_db
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # Mongo Express — Database Admin UI (dev only)
+  # -----------------------------------------------------------
+  mongo-express:
+    image: mongo-express:1-20
+    container_name: clipper-mongo-ui
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: clipper_admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: clipper_dev_password
+      ME_CONFIG_MONGODB_URL: mongodb://clipper_admin:clipper_dev_password@mongodb:27017/
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -----------------------------------------------------------
+  # Azurite — Azure Blob Storage Emulator (local dev)
+  # -----------------------------------------------------------
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: clipper-azurite
+    ports:
+      - "10000:10000"  # Blob
+      - "10001:10001"  # Queue
+      - "10002:10002"  # Table
+    volumes:
+      - azurite_data:/data
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  mongo_data:
+    driver: local
+  azurite_data:
+    driver: local

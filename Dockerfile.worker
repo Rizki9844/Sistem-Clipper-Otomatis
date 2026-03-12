@@ -1,0 +1,46 @@
+# ============================================================
+# AutoClipperPro Worker — Celery Worker Dockerfile
+# ============================================================
+# Heavier image: includes Whisper model dependencies + MediaPipe
+# Target: Azure Container Instances
+# ============================================================
+
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# ---- System Dependencies ----
+# FFmpeg for video processing, libgl for MediaPipe/OpenCV
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Install yt-dlp ----
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp
+
+WORKDIR /app
+
+# ---- Python Dependencies ----
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ---- Application Code ----
+COPY backend/ .
+
+# ---- Health Check (Celery inspect ping) ----
+HEALTHCHECK --interval=60s --timeout=15s --start-period=30s --retries=3 \
+    CMD celery -A app.workers.celery_app inspect ping --timeout 10 || exit 1
+
+# ---- Default: Run Celery Worker ----
+CMD celery -A app.workers.celery_app worker \
+    --loglevel=info \
+    --concurrency=2 \
+    --max-tasks-per-child=50 \
+    --without-heartbeat \
+    -Q download,transcribe,analyze,edit,render
