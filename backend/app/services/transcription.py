@@ -9,9 +9,6 @@ import os
 import tempfile
 from typing import Optional
 
-import whisper
-import numpy as np
-
 from app.config import settings
 from app.models.transcript import Transcript, TranscriptSegment, WordTimestamp
 
@@ -30,6 +27,7 @@ class TranscriptionService:
     def model(self):
         """Lazy-load the Whisper model (it's large)."""
         if self._model is None:
+            import whisper
             print(f"🔄 Loading Whisper model: {self.model_name}...")
             self._model = whisper.load_model(self.model_name)
             print(f"✅ Whisper model loaded: {self.model_name}")

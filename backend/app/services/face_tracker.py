@@ -10,10 +10,6 @@ import tempfile
 import subprocess
 from typing import Optional
 
-import cv2
-import mediapipe as mp
-import numpy as np
-
 from app.config import settings
 
 
@@ -24,6 +20,7 @@ class FaceTracker:
     """
 
     def __init__(self, min_detection_confidence: float = 0.5):
+        import mediapipe as mp
         self.mp_face_detection = mp.solutions.face_detection
         self.min_confidence = min_detection_confidence
 
@@ -49,6 +46,7 @@ class FaceTracker:
         """
         face_positions = []
 
+        import cv2
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             return []
@@ -125,6 +123,7 @@ class FaceTracker:
 
         if smoothing and len(x_positions) > 3:
             # Simple moving average for smoothing
+            import numpy as np
             kernel_size = min(5, len(x_positions))
             x_positions = np.convolve(
                 x_positions,
