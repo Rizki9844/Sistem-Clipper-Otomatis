@@ -1,7 +1,8 @@
 # ==============================================================
-# AutoClipperPro — Python Dependencies
+# AutoClipperPro — API Server Dependencies (Lightweight)
 # ==============================================================
-# Backend: FastAPI + Celery + MongoDB + Azure + AI
+# This file is for the BACKEND API only (Heroku).
+# Worker dependencies are in requirements-worker.txt
 # ==============================================================
 
 # ---- Core Framework ----
@@ -15,7 +16,7 @@ motor==3.3.2
 beanie==1.25.0
 pymongo==4.6.1
 
-# ---- Task Queue ----
+# ---- Task Queue (broker only, no worker) ----
 celery[redis]==5.3.6
 redis==5.0.1
 
@@ -23,19 +24,8 @@ redis==5.0.1
 azure-storage-blob==12.19.0
 azure-identity==1.15.0
 
-# ---- AI / ML ----
+# ---- AI (Gemini — lightweight, no PyTorch needed) ----
 google-generativeai==0.8.4
-openai-whisper==20231117
-
-# ---- Video Processing ----
-ffmpeg-python==0.2.0
-moviepy==1.0.3
-Pillow==10.2.0
-opencv-python-headless==4.9.0.80
-mediapipe==0.10.11
-
-# ---- Video Download ----
-yt-dlp==2024.3.10
 
 # ---- HTTP Client ----
 httpx==0.27.0
@@ -49,12 +39,6 @@ sentry-sdk[fastapi,celery]==1.40.0
 # ---- Utilities ----
 python-dotenv==1.0.1
 python-multipart==0.0.9
-
-# ---- Testing ----
-pytest==8.0.0
-pytest-asyncio==0.23.4
-pytest-cov==4.1.0
-httpx==0.27.0
 
 # ---- Security ----
 python-jose[cryptography]==3.3.0

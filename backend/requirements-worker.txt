@@ -1,0 +1,22 @@
+# ==============================================================
+# AutoClipperPro — Worker Dependencies (Full)
+# ==============================================================
+# Includes everything from requirements.txt PLUS heavy ML/video deps
+# Used by Dockerfile.worker (Koyeb / Azure ACI)
+# ==============================================================
+
+# ---- Include base API deps ----
+-r requirements.txt
+
+# ---- AI / ML (Heavy) ----
+openai-whisper==20231117
+
+# ---- Video Processing ----
+ffmpeg-python==0.2.0
+moviepy==1.0.3
+Pillow==10.2.0
+opencv-python-headless==4.9.0.80
+mediapipe==0.10.11
+
+# ---- Video Download ----
+yt-dlp==2024.3.10
