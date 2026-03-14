@@ -29,7 +29,8 @@ WORKDIR /app
 # ---- Python Dependencies ----
 COPY backend/requirements.txt .
 COPY backend/requirements-worker.txt .
-RUN pip install --no-cache-dir -r requirements-worker.txt
+RUN pip install "setuptools<70.0.0" wheel
+RUN pip install --no-cache-dir --no-build-isolation -r requirements-worker.txt
 
 # ---- Application Code ----
 COPY backend/ .
