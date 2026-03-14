@@ -1,13 +1,15 @@
 # ============================================================
 # Heroku Docker Deploy Configuration
 # ============================================================
-# Only deploys the WEB (API) service to Heroku.
-# Worker deploys separately to Koyeb (free tier).
+# Deploys BOTH the WEB (API) and WORKER (Celery) services 
+# to the same Heroku application.
 # ============================================================
 
 build:
   docker:
     web: Dockerfile
+    worker: Dockerfile.worker
 
 run:
   web: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+  worker: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2 --without-heartbeat -Q download,transcribe,analyze,edit,render
