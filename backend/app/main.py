@@ -5,6 +5,7 @@ Main application with CORS, Sentry, structured logging,
 lifecycle hooks, and global exception handling.
 """
 
+import traceback
 from contextlib import asynccontextmanager
 
 import sentry_sdk
@@ -34,16 +35,32 @@ if settings.SENTRY_DSN:
 # ---- Application Lifecycle ----
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup and shutdown events."""
+    """Startup and shutdown events — fault tolerant."""
     logger.info("Starting application", app=settings.APP_NAME, env=settings.APP_ENV)
-    await init_database()
 
-    # Create default caption style if none exists
-    await _ensure_default_style()
+    # Try to connect to MongoDB, but don't crash if it fails
+    try:
+        await init_database()
+        logger.info("Database connected successfully")
+
+        # Create default caption style if none exists
+        await _ensure_default_style()
+    except Exception as e:
+        logger.error(
+            "Database connection failed at startup — app will run in degraded mode",
+            error=str(e),
+            traceback=traceback.format_exc(),
+        )
+        # Print to stdout so it shows in Heroku logs
+        print(f"⚠️ DATABASE CONNECTION FAILED: {e}")
+        print(traceback.format_exc())
 
     yield
 
-    await close_database()
+    try:
+        await close_database()
+    except Exception:
+        pass
     logger.info("Application shut down")
 
 
@@ -72,8 +89,9 @@ app = FastAPI(
     ),
     version="0.2.0",
     lifespan=lifespan,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
+    # Always enable docs (helpful for debugging & API testing)
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 
@@ -143,7 +161,7 @@ async def health_check():
     # Check Redis
     try:
         import redis
-        r = redis.from_url(settings.REDIS_URL)
+        r = redis.from_url(settings.REDIS_URL, ssl_cert_reqs=None)
         r.ping()
         health["checks"]["redis"] = "connected"
     except Exception as e:

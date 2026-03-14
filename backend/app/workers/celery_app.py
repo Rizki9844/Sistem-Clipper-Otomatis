@@ -73,6 +73,14 @@ celery_app.conf.update(
     # Task time limits
     task_soft_time_limit=600,
     task_time_limit=900,
+
+    # SSL/TLS for Upstash Redis (rediss:// protocol)
+    broker_use_ssl={
+        "ssl_cert_reqs": None,
+    } if settings.CELERY_BROKER_URL.startswith("rediss://") else None,
+    redis_backend_use_ssl={
+        "ssl_cert_reqs": None,
+    } if settings.CELERY_RESULT_BACKEND.startswith("rediss://") else None,
 )
 
 # ---- Sentry integration for worker errors ----
