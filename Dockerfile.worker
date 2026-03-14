@@ -38,13 +38,10 @@ COPY backend/ .
 HEALTHCHECK --interval=60s --timeout=15s --start-period=30s --retries=3 \
     CMD celery -A app.workers.celery_app inspect ping --timeout 10 || exit 1
 
-# ---- Default: Run Celery Worker & Dummy HTTP Server for Render ----
-# Render free tier requires a Web Service that binds to $PORT. 
-# We run celery in the background (&) and a dummy HTTP server in the foreground.
+# ---- Default: Run Celery Worker ----
 CMD celery -A app.workers.celery_app worker \
     --loglevel=info \
     --concurrency=2 \
     --max-tasks-per-child=50 \
     --without-heartbeat \
-    -Q download,transcribe,analyze,edit,render & \
-    python -m http.server ${PORT:-10000}
+    -Q download,transcribe,analyze,edit,render
