@@ -65,3 +65,8 @@ backend/temp/
 *.webm
 *.part
 *.ytdl
+
+# Private Files
+DEPLOYMENT.md
+CONTINUE_PROMPT.md
+azure-deploy-worker.sh
