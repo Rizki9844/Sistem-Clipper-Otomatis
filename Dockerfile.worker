@@ -29,7 +29,6 @@ WORKDIR /app
 # ---- Python Dependencies ----
 COPY backend/requirements.txt .
 COPY backend/requirements-worker.txt .
-RUN pip install --no-cache-dir setuptools wheel
 RUN pip install --no-cache-dir -r requirements-worker.txt
 
 # ---- Application Code ----
