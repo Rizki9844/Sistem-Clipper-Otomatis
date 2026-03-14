@@ -629,68 +629,68 @@ heroku logs --tail --app autoclipperpro-api
 
 ---
 
-## STEP 8: Deploy Worker ke Koyeb (Celery Worker)
+## STEP 8: Deploy Worker ke Render (Celery Worker)
 
 **Waktu: ~10 menit**
 
-Worker menjalankan tugas berat: download video, transcribe, analyze, edit, dan render.
+Worker menjalankan tugas berat: download video, transcribe, analyze, edit, dan render. Karena kita butuh platform yang **100% Gratis Tanpa Kartu Kredit**, kita akan menggunakan **Render.com**.
 
-### 8a. Buat Akun Koyeb
+Render.com gratis tier hanya berlaku untuk "Web Service". Oleh karena itu kita memodifikasi kode agar Worker berjalan sebagai Web Service virtual.
 
-1. Buka [app.koyeb.com](https://app.koyeb.com) → **Sign up with GitHub**
-2. Pilih plan: **Hobby Free** (tidak perlu credit card!)
+### 8a. Buat Akun Render
 
-### 8b. Connect GitHub Repository
+1. Buka [render.com](https://render.com)
+2. Klik **"Get Started"** → **Sign up with GitHub** (tidak perlu credit card!)
 
-1. Di Koyeb Dashboard, klik **"Create App"**
-2. Deployment method: **GitHub**
-3. Install Koyeb GitHub App → pilih repository kamu
-4. Repository: `Sistem-Clipper-Otomatis` (atau nama repo kamu)
-5. Branch: `main`
+### 8b. Buat Web Service Baru
 
-### 8c. Configure Build
+1. Di Render Dashboard, klik tombol **"New +"** lalu pilih **"Web Service"**
+2. Pilih **"Build and deploy from a Git repository"** dan klik Next
+3. Hubungkan GitHub kamu dan pilih repository **`Sistem-Clipper-Otomatis`** (atau nama repo kamu)
 
-1. **Builder**: **Dockerfile**
-2. **Dockerfile path**: `Dockerfile.worker` (⚠️ penting! bukan `Dockerfile`)
-3. **Service type**: Klik tab **"Worker"** (bukan "Web Service"!)
+### 8c. Konfigurasi Deployment
 
-### 8d. Set Instance
+Isi pengaturan berikut dengan teliti:
 
-1. Instance type: **Nano** → **Free!**
-   - 0.1 vCPU
-   - 512MB RAM
-   - ⚠️ RAM terbatas, Whisper model harus pakai `tiny` atau `base`
-2. Region: **Singapore** (sgp1)
+1. **Name**: `autoclipperpro-worker`
+2. **Region**: Singapore (atau yang terdekat)
+3. **Branch**: `main`
+4. **Runtime**: **Docker**
+5. **Build Command**: *(biarkan kosong/default)*
+6. **Start Command**: *(biarkan kosong/default)*
 
-### 8e. Set Environment Variables
+### 8d. Set Dockerfile & Environment Variables
 
-Klik **"Environment Variables"** → Tambahkan semua:
+Scroll ke bawah, cari menu **"Advanced"** (klik untuk membuka):
 
-| Variable | Value |
+1. **Dockerfile Path**: Isi dengan `Dockerfile.worker` (⚠️ penting! harus `.worker`!)
+2. Klik **"Add Environment Variable"** dan masukkan semua data berikut:
+
+| Key | Value |
 |----------|-------|
 | `MONGODB_URL` | (sama seperti Step 7d) |
-| `MONGODB_DB_NAME` | `autoclipperpro` |
+| `MONGODB_DB_NAME` | `clipper_db` |
 | `CELERY_BROKER_URL` | (sama seperti Step 7d) |
 | `CELERY_RESULT_BACKEND` | (sama seperti Step 7d) |
 | `AZURE_STORAGE_CONNECTION_STRING` | (sama seperti Step 7d) |
-| `GEMINI_API_KEY` | (sama seperti Step 7d) |
-| `GEMINI_MODEL` | `gemini-2.0-flash` |
-| `WHISPER_MODEL_SIZE` | `tiny` (⚠️ pakai `tiny` untuk 512MB RAM!) |
+| `GEMINI_API_KEY` | (sama select Step 7d) |
+| `GEMINI_MODEL` | `gemini-2.5-pro-preview-05-06` |
+| `WHISPER_MODEL_SIZE` | `base` (⚠️ RAM gratisan Render terbatas!) |
 | `SENTRY_DSN` | (sama seperti Step 7d) |
 | `TELEGRAM_BOT_TOKEN` | (sama seperti Step 7d) |
 | `TELEGRAM_CHAT_ID` | (sama seperti Step 7d) |
 | `APP_ENV` | `production` |
 
-### 8f. Deploy
+### 8e. Deploy & Keep-Alive Hack
 
-1. Klik **"Deploy"**
-2. Tunggu build selesai (5-10 menit pertama kali)
-3. Status harus berubah ke **"Healthy"** ✅
+1. Scroll paling bawah dan pastikan **Free tier** ($0/month) terpilih.
+2. Klik tombol **"Create Web Service"**.
+3. Tunggu Render mem-build Docker image (bisa memakan waktu 10-15 menit karena menginstall FFmpeg, AI models, dll).
+4. Jika di console log paling bawah sudah muncul "Your service is live 🎉", maka worker sudah berhasil berjalan!
 
-### Troubleshooting:
-- **OOMKilled (Out of Memory)** → Ganti `WHISPER_MODEL_SIZE` ke `tiny`
-- **Build gagal** → Cek apakah `Dockerfile.worker` sudah ada dan path benar
-- **Worker tidak connect ke Redis** → Cek URL Redis pakai `rediss://` (bukan `redis://`)
+> 💡 **TIPS PENTING (BACA INI):**
+> Render Free Tier akan **mematikan / menidurkan (spin down)** aplikasi jika tidak ada request selama 15 menit. Karena Worker ini bekerja di *background*, dia bisa tertidur!
+> **Solusinya:** Daftar ke layanan gratis [cron-job.org](https://cron-job.org/), lalu buat cron job untuk melakukan *ping* (memanggil URL Render kamu, misal `https://autoclipperpro-worker.onrender.com`) setiap **10 menit**. Ini akan memaksa Worker tetap bangun 24/7!
 
 ---
 
