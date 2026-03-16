@@ -72,6 +72,42 @@ class Settings(BaseSettings):
     DEFAULT_FACE_TRACKING: bool = True
     DEFAULT_ADD_CAPTIONS: bool = True
 
+    # --- JWT Authentication ---
+    JWT_SECRET_KEY: str = "change-this-jwt-secret-in-production-min-32-chars"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+
+    # --- Rate Limiting ---
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_LOGIN: str = "5/minute"
+    RATE_LIMIT_REGISTER: str = "3/minute"
+    RATE_LIMIT_GENERAL: str = "60/minute"
+    RATE_LIMIT_SUBMIT: str = "10/minute"
+
+    # --- Stripe (Subscription & Payment) ---
+    STRIPE_SECRET_KEY: str = ""               # sk_live_... or sk_test_...
+    STRIPE_WEBHOOK_SECRET: str = ""           # whsec_...
+    STRIPE_PRICE_STARTER: str = ""            # price_xxx
+    STRIPE_PRICE_PRO: str = ""                # price_xxx
+    STRIPE_PRICE_BUSINESS: str = ""           # price_xxx
+    STRIPE_SUCCESS_URL: str = "https://yourapp.vercel.app/billing?success=true"
+    STRIPE_CANCEL_URL: str = "https://yourapp.vercel.app/billing?canceled=true"
+
+    # --- TikTok API ---
+    TIKTOK_CLIENT_KEY: str = ""
+    TIKTOK_CLIENT_SECRET: str = ""
+    TIKTOK_REDIRECT_URI: str = ""
+
+    # --- Instagram / Facebook Graph API ---
+    INSTAGRAM_APP_ID: str = ""
+    INSTAGRAM_APP_SECRET: str = ""
+    INSTAGRAM_REDIRECT_URI: str = ""
+
+    # --- YouTube Data API ---
+    YOUTUBE_CLIENT_ID: str = ""
+    YOUTUBE_CLIENT_SECRET: str = ""
+    YOUTUBE_REDIRECT_URI: str = ""
+
     # --- CORS ---
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",

@@ -12,11 +12,14 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
 from app.database import init_database, close_database
 from app.logging_config import setup_logging, get_logger
 from app.exceptions import ClipperBaseError
+from app.api.rate_limit import limiter
 
 # ---- Initialize logging first ----
 setup_logging()
@@ -94,6 +97,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# Attach limiter to app state (required by SlowAPI)
+app.state.limiter = limiter
+
 
 # ---- Global Exception Handler ----
 @app.exception_handler(ClipperBaseError)
@@ -104,6 +110,20 @@ async def clipper_exception_handler(request: Request, exc: ClipperBaseError):
     return JSONResponse(
         status_code=400,
         content=exc.to_dict(),
+    )
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    """Custom 429 response for rate-limited requests."""
+    logger.warning("Rate limit exceeded", path=request.url.path,
+                   detail=str(exc.detail))
+    return JSONResponse(
+        status_code=429,
+        content={
+            "error": "RateLimitExceeded",
+            "message": f"Too many requests. {exc.detail}",
+        },
     )
 
 

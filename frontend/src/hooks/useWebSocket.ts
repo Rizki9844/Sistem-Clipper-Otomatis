@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { WSProgressEvent } from "@/lib/api/types";
+import { getToken } from "@/lib/auth";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/api/v1/ws";
 
@@ -21,7 +22,10 @@ export function useWebSocket({ jobId, onProgress, enabled = true }: UseWebSocket
     const connect = useCallback(() => {
         if (!enabled || !jobId) return;
 
-        const ws = new WebSocket(`${WS_URL}/ws/progress?job_id=${jobId}`);
+        const token = getToken();
+        if (!token) return; // not authenticated
+
+        const ws = new WebSocket(`${WS_URL}/ws/progress?job_id=${jobId}&token=${token}`);
         wsRef.current = ws;
 
         ws.onopen = () => {

@@ -13,12 +13,14 @@ celery_app = Celery(
     "auto_clipper",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
+    # ---- include publish task ----
     include=[
         "app.workers.tasks.download",
         "app.workers.tasks.transcribe",
         "app.workers.tasks.analyze",
         "app.workers.tasks.edit_video",
         "app.workers.tasks.render",
+        "app.workers.tasks.publish",
     ],
 )
 
@@ -52,7 +54,13 @@ celery_app.conf.update(
         "app.workers.tasks.analyze.*": {"queue": "analysis"},
         "app.workers.tasks.edit_video.*": {"queue": "editing"},
         "app.workers.tasks.render.*": {"queue": "rendering"},
+        "app.workers.tasks.publish.*": {"queue": "rendering"},  # low priority
     },
+
+    # Priority queue support (0=highest, 9=lowest)
+    # Pro/Business jobs sent with priority=0, Free jobs with priority=9
+    task_queue_max_priority=9,
+    task_default_priority=5,
 
     # Rate limiting
     task_annotations={

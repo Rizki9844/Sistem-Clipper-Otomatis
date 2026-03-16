@@ -2,17 +2,17 @@
 # AutoClipperPro Worker — Celery Worker Dockerfile
 # ============================================================
 # Heavier image: includes Whisper model dependencies + MediaPipe
-# Target: Azure Container Instances
+# Build via GitHub Actions → Heroku Container Registry
 # ============================================================
 
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # ---- System Dependencies ----
-# FFmpeg for video processing, libgl for MediaPipe/OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
@@ -26,16 +26,35 @@ RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o 
 
 WORKDIR /app
 
-# ---- Python Dependencies ----
+# ---- Python Dependencies (layered for cache + memory efficiency) ----
 COPY backend/requirements.txt .
 COPY backend/requirements-worker.txt .
 
-# Optimize for Heroku Builder RAM limits (OOM Kills)
-# 1. Install base requirements first
+# Layer 1: Build tools + pinned Google ecosystem (prevents resolution loop)
+RUN pip install --no-cache-dir "setuptools<70.0.0" wheel
+
+# Layer 2: Base API requirements (Google deps already pinned in requirements.txt)
 RUN pip install --no-cache-dir -r requirements.txt
-# 2. Install heavy worker requirements separately with no-build-isolation
-RUN pip install "setuptools<70.0.0" wheel && \
-    pip install --no-cache-dir -r requirements-worker.txt
+
+# Layer 3: Heavy ML packages — one at a time to limit peak RAM usage
+# PyTorch CPU (required by whisper) — force binary wheel only
+RUN pip install --no-cache-dir --only-binary=:all: \
+    torch==2.2.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Layer 4: Whisper (skip torch since already installed)
+RUN pip install --no-cache-dir openai-whisper==20240930
+
+# Layer 5: Video + MediaPipe (all have prebuilt wheels)
+RUN pip install --no-cache-dir --only-binary=:all: \
+    opencv-python-headless==4.9.0.80 \
+    mediapipe==0.10.11
+
+# Layer 6: Remaining worker deps
+RUN pip install --no-cache-dir \
+    ffmpeg-python==0.2.0 \
+    moviepy==1.0.3 \
+    Pillow==10.2.0 \
+    yt-dlp==2024.3.10
 
 # ---- Application Code ----
 COPY backend/ .

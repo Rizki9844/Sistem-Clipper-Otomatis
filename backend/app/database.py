@@ -27,6 +27,9 @@ async def init_database():
     from app.models.clip import Clip
     from app.models.transcript import Transcript
     from app.models.style import CaptionStyle
+    from app.models.user import User
+    from app.models.social_account import SocialAccount
+    from app.models.publish_job import PublishJob
 
     _client = AsyncIOMotorClient(settings.MONGODB_URL)
     database = _client[settings.MONGODB_DB_NAME]
@@ -39,6 +42,9 @@ async def init_database():
             Clip,
             Transcript,
             CaptionStyle,
+            User,
+            SocialAccount,
+            PublishJob,
         ],
     )
 

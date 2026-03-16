@@ -7,7 +7,7 @@ CRUD for caption style templates.
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from app.models.style import (
@@ -17,6 +17,8 @@ from app.models.style import (
     AnimationConfig,
     PositionConfig,
 )
+from app.api.deps import get_current_user, get_current_admin
+from app.models.user import User
 
 router = APIRouter()
 
@@ -43,8 +45,8 @@ class StyleResponse(BaseModel):
 
 
 @router.get("/", response_model=list[StyleResponse])
-async def list_styles():
-    """List all caption style templates."""
+async def list_styles(_: User = Depends(get_current_user)):
+    """List all caption style templates (shared across all users)."""
     styles = await CaptionStyle.find_all().sort("name").to_list()
     return [
         StyleResponse(
@@ -57,11 +59,13 @@ async def list_styles():
 
 
 @router.post("/", response_model=StyleResponse)
-async def create_style(data: StyleCreateRequest):
-    """Create a new caption style template."""
+async def create_style(
+    data: StyleCreateRequest,
+    _: User = Depends(get_current_admin),
+):
+    """Create a new caption style template. Admin only."""
     style = CaptionStyle(**data.model_dump())
     await style.insert()
-
     return StyleResponse(
         id=str(style.id), name=style.name, description=style.description,
         is_default=style.is_default, font=style.font, colors=style.colors,
@@ -70,8 +74,12 @@ async def create_style(data: StyleCreateRequest):
 
 
 @router.put("/{style_id}", response_model=StyleResponse)
-async def update_style(style_id: str, data: StyleCreateRequest):
-    """Update a caption style template."""
+async def update_style(
+    style_id: str,
+    data: StyleCreateRequest,
+    _: User = Depends(get_current_admin),
+):
+    """Update a caption style template. Admin only."""
     style = await CaptionStyle.get(style_id)
     if not style:
         raise HTTPException(status_code=404, detail="Style not found")
@@ -93,8 +101,11 @@ async def update_style(style_id: str, data: StyleCreateRequest):
 
 
 @router.delete("/{style_id}")
-async def delete_style(style_id: str):
-    """Delete a caption style template."""
+async def delete_style(
+    style_id: str,
+    _: User = Depends(get_current_admin),
+):
+    """Delete a caption style template. Admin only."""
     style = await CaptionStyle.get(style_id)
     if not style:
         raise HTTPException(status_code=404, detail="Style not found")

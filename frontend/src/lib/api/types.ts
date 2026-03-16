@@ -132,8 +132,133 @@ export interface WSProgressEvent {
   metadata?: Record<string, unknown>;
 }
 
-// ---- Filters ----
-export interface VideoFilters {
+// ---- Quota ----
+export interface QuotaInfo {
+  plan_tier: "free" | "starter" | "pro" | "business" | "enterprise";
+  used: number;
+  limit: number;
+  unlimited: boolean;
+  remaining: number | null;
+  reset_date: string;
+}
+
+// ---- Billing / Subscription ----
+export interface SubscriptionStatus {
+  plan_tier: "free" | "starter" | "pro" | "business" | "enterprise";
+  subscription_status: "active" | "trialing" | "past_due" | "canceled" | "inactive";
+  monthly_quota: number;
+  used_quota: number;
+  trial_end_date: string | null;
+  features: PlanFeatures;
+  is_trial: boolean;
+}
+
+export interface PlanFeatures {
+  display_name: string;
+  price_monthly: number;
+  monthly_quota: number;
+  max_video_duration_minutes: number;
+  max_clips_per_video: number;
+  max_quality: string;
+  watermark: boolean;
+  publish_platforms: string[];
+  queue_priority: number;
+  custom_captions: boolean;
+  analytics: boolean | string;
+  api_access: boolean;
+  team_seats: number;
+}
+
+export interface PricingPlan {
+  tier: string;
+  badge: string | null;
+  cta: string;
+  features: string[];
+  not_included: string[];
+}
+
+// ---- Social Publishing ----
+export interface SocialAccount {
+  id: string;
+  platform: "tiktok" | "instagram" | "youtube";
+  username: string;
+  avatar: string | null;
+  connected_at: string;
+  token_expires_at: string | null;
+}
+
+export interface PublishJobEntry {
+  id: string;
+  clip_id: string;
+  platform: "tiktok" | "instagram" | "youtube";
+  status: "pending" | "processing" | "published" | "failed" | "scheduled";
+  platform_post_url: string | null;
+  scheduled_at: string | null;
+  published_at: string | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+export interface PublishRequest {
+  platform: string;
+  social_account_id: string;
+  caption: string;
+  hashtags: string[];
+  scheduled_at?: string | null;
+}
+
+// ---- Admin ----
+export interface AdminUserDetail {
+  id: string;
+  email: string;
+  full_name: string;
+  is_active: boolean;
+  is_admin: boolean;
+  plan_tier: "free" | "pro";
+  monthly_quota: number;
+  used_quota: number;
+  created_at: string;
+  last_login: string | null;
+  total_videos: number;
+  total_jobs: number;
+  total_clips: number;
+}
+
+export interface AdminStats {
+  users: {
+    total: number;
+    active: number;
+    free_plan: number;
+    pro_plan: number;
+  };
+  videos: { total: number };
+  jobs: {
+    total: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    queued: number;
+  };
+  clips: { total: number };
+}
+
+export interface AdminJobEntry {
+  id: string;
+  video_id: string;
+  status: string;
+  current_step: string;
+  overall_progress: number;
+  steps: JobStep[];
+  config: JobConfig;
+  total_clips_found: number;
+  total_clips_rendered: number;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  processing_time: string | null;
+  user_email: string;
+}
   status?: string;
   source_type?: string;
   platform?: string;

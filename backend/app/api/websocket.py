@@ -11,6 +11,7 @@ from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.services.auth_service import decode_access_token
 from app.logging_config import get_logger
 
 router = APIRouter()
@@ -92,51 +93,57 @@ async def broadcast_job_update(
 
 
 @router.websocket("/ws/progress")
-async def websocket_progress(websocket: WebSocket, job_id: Optional[str] = None):
+async def websocket_progress(
+    websocket: WebSocket,
+    job_id: Optional[str] = None,
+    token: Optional[str] = None,
+):
     """
     WebSocket endpoint for real-time job progress.
-
-    Connect: ws://host/api/v1/ws/progress?job_id=xxx
-
-    Events received:
-    {
-        "type": "progress",
-        "job_id": "xxx",
-        "status": "processing",
-        "step": "transcribe",
-        "progress": 45.0,
-        "metadata": {...}
-    }
+    Connect: ws://host/api/v1/ws/progress?job_id=xxx&token=<jwt>
     """
     if not job_id:
         await websocket.close(code=4001, reason="job_id query parameter required")
         return
 
+    if not token:
+        await websocket.close(code=4003, reason="token query parameter required")
+        return
+
+    payload = decode_access_token(token)
+    if not payload:
+        await websocket.close(code=4003, reason="Invalid or expired token")
+        return
+
+    user_id = payload.get("sub")
+
+    # Verify the job belongs to this user
+    from app.models.job import Job
+    job = await Job.get(job_id)
+    if not job or job.user_id != user_id:
+        await websocket.close(code=4004, reason="Job not found")
+        return
+
     await manager.connect(websocket, job_id)
 
     try:
-        # Send initial status
-        from app.models.job import Job
-        job = await Job.get(job_id)
-        if job:
-            await websocket.send_json({
-                "type": "initial",
-                "job_id": job_id,
-                "status": job.status,
-                "step": job.current_step,
-                "progress": job.overall_progress,
-                "steps": job.steps,
-            })
+        # Send initial state
+        await websocket.send_json({
+            "type": "initial",
+            "job_id": job_id,
+            "status": job.status,
+            "step": job.current_step,
+            "progress": job.overall_progress,
+            "steps": job.steps,
+        })
 
-        # Keep connection alive
+        # Keep connection alive — receive pings, send heartbeats
         while True:
             try:
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30)
-                # Client can send "ping" to keep alive
                 if data == "ping":
                     await websocket.send_json({"type": "pong"})
             except asyncio.TimeoutError:
-                # Send heartbeat
                 await websocket.send_json({"type": "heartbeat"})
 
     except WebSocketDisconnect:

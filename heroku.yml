@@ -1,14 +1,16 @@
 # ============================================================
 # Heroku Docker Deploy Configuration
 # ============================================================
-# Deploys BOTH the WEB (API) and WORKER (Celery) services 
-# to the same Heroku application.
+# WEB: Built by Heroku via heroku.yml (lightweight API image)
+# WORKER: Built via GitHub Actions → Heroku Container Registry
+#         (see .github/workflows/deploy-worker.yml)
 # ============================================================
 
 build:
   docker:
     web: Dockerfile
-    worker: Dockerfile.worker
+    # worker is deployed via GitHub Actions (deploy-worker.yml)
+    # to bypass Heroku builder RAM limits for ML packages
 
 run:
   web: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2

@@ -228,6 +228,34 @@ function ClipsContent() {
                                     </div>
                                 </div>
 
+                                {/* Virality Score Bar — OpusClip style */}
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Virality Score</span>
+                                        <span className={`text-xs font-bold ${
+                                            clip.highlight_score >= 8 ? "text-emerald-400" :
+                                            clip.highlight_score >= 6 ? "text-amber-400" :
+                                            clip.highlight_score >= 4 ? "text-sky-400" : "text-slate-500"
+                                        }`}>
+                                            {clip.highlight_score >= 8 ? "🔥" :
+                                             clip.highlight_score >= 6 ? "⚡" :
+                                             clip.highlight_score >= 4 ? "📈" : "💤"}{" "}
+                                            {clip.highlight_score.toFixed(1)}/10
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                        <div
+                                            className={`h-full rounded-full transition-all duration-700 ${
+                                                clip.highlight_score >= 8 ? "bg-gradient-to-r from-emerald-500 to-green-400" :
+                                                clip.highlight_score >= 6 ? "bg-gradient-to-r from-amber-500 to-yellow-400" :
+                                                clip.highlight_score >= 4 ? "bg-gradient-to-r from-sky-500 to-blue-400" :
+                                                "bg-slate-600"
+                                            }`}
+                                            style={{ width: `${clip.highlight_score * 10}%` }}
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Actions */}
                                 {clip.review_status === "pending" && (
                                     <div className="flex gap-2">

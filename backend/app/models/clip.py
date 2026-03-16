@@ -17,6 +17,7 @@ class Clip(Document):
 
     video_id: str
     job_id: str
+    user_id: Optional[str] = None  # owner — inherited from parent job
 
     # Timing (from AI analysis)
     start_time: float
@@ -62,6 +63,7 @@ class Clip(Document):
         indexes = [
             "video_id",
             "job_id",
+            "user_id",
             "status",
             "review_status",
             "highlight_score",

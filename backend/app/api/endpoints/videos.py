@@ -8,14 +8,18 @@ The primary entry point for the video clipper system.
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
 from pydantic import BaseModel, Field, HttpUrl
+from starlette.requests import Request
 
 from app.config import settings
 from app.models.video import Video
 from app.models.job import Job
 from app.services.storage import AzureBlobStorage
 from app.services.pipeline import PipelineOrchestrator, JobConfig
+from app.api.deps import get_current_user, check_quota
+from app.api.rate_limit import limiter
+from app.models.user import User
 from app.logging_config import get_logger
 
 router = APIRouter()
@@ -85,7 +89,12 @@ class URLSubmitRequest(BaseModel):
 # ============================================================
 
 @router.post("/from-url", response_model=SubmitResponse)
-async def submit_url(request: URLSubmitRequest):
+@limiter.limit(settings.RATE_LIMIT_SUBMIT)
+async def submit_url(
+    request: Request,
+    body: URLSubmitRequest,
+    current_user: User = Depends(check_quota),
+):
     """
     🔗 Submit a video URL for full AI processing.
 
@@ -98,35 +107,60 @@ async def submit_url(request: URLSubmitRequest):
     - GET /api/v1/jobs/{job_id} (polling)
     - WS /api/v1/ws/progress (real-time)
     """
-    logger.info("URL submitted", url=request.url)
+    logger.info("URL submitted", url=body.url)
 
     # Quick URL validation
     from app.services.downloader import VideoDownloader
     downloader = VideoDownloader()
-    platform = downloader.identify_platform(request.url)
+    platform = downloader.identify_platform(body.url)
 
     # Pre-flight: extract metadata (fast, no download)
     try:
-        metadata = await downloader.extract_metadata(request.url)
+        metadata = await downloader.extract_metadata(body.url)
     except Exception as e:
         raise HTTPException(
             status_code=400,
             detail=f"Could not access video at URL: {str(e)}"
         )
 
-    # Validate duration
-    if metadata.duration_seconds > settings.MAX_VIDEO_DURATION_MINUTES * 60:
+    # Validate duration based on user's plan
+    from app.services.plan_config import get_plan
+    user_plan = get_plan(current_user.plan_tier)
+    max_duration_plan = user_plan["max_video_duration_minutes"]
+    max_clips_plan = user_plan["max_clips_per_video"]
+
+    # Check plan duration limit (0 = unlimited)
+    if max_duration_plan > 0 and metadata.duration_seconds > max_duration_plan * 60:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "DURATION_LIMIT",
+                "message": (
+                    f"Your {current_user.plan_tier} plan supports videos up to {max_duration_plan} minutes. "
+                    f"This video is {metadata.duration_seconds / 60:.0f} minutes. Upgrade to process longer videos."
+                ),
+                "current_plan": current_user.plan_tier,
+                "limit_minutes": max_duration_plan,
+            },
+        )
+    # Fallback global limit
+    elif metadata.duration_seconds > settings.MAX_VIDEO_DURATION_MINUTES * 60:
         raise HTTPException(
             status_code=400,
             detail=f"Video is {metadata.duration_seconds / 60:.0f} minutes. "
                    f"Maximum: {settings.MAX_VIDEO_DURATION_MINUTES} minutes."
         )
 
+    # Enforce clips per video limit from plan (0 = unlimited)
+    effective_max_clips = body.max_clips
+    if max_clips_plan > 0:
+        effective_max_clips = min(body.max_clips, max_clips_plan)
+
     # Create Video record (metadata-only, no blob yet)
     video = Video(
         original_filename=metadata.title or "Untitled",
         source_type="url",
-        source_url=request.url,
+        source_url=body.url,
         source_platform=platform,
         thumbnail_url=metadata.thumbnail_url,
         duration_seconds=metadata.duration_seconds,
@@ -139,38 +173,47 @@ async def submit_url(request: URLSubmitRequest):
             "description": metadata.description[:500] if metadata.description else "",
         },
         status="pending",
+        user_id=str(current_user.id),
     )
     await video.insert()
 
     # Build job config from request
     job_config = JobConfig(
-        quality_preset=request.quality,
-        crop_to_portrait=request.crop_to_portrait,
-        face_tracking=request.face_tracking,
-        add_captions=request.add_captions,
-        caption_style_id=request.caption_style_id,
-        max_clips=request.max_clips,
-        min_highlight_score=request.min_highlight_score,
-        target_aspect_ratio=request.target_aspect_ratio,
-        notify_whatsapp=request.notify_whatsapp,
-        notify_telegram=request.notify_telegram,
-        whatsapp_number=request.whatsapp_number,
-        language=request.language,
+        quality_preset=body.quality,
+        crop_to_portrait=body.crop_to_portrait,
+        face_tracking=body.face_tracking,
+        add_captions=body.add_captions,
+        caption_style_id=body.caption_style_id,
+        max_clips=effective_max_clips,
+        min_highlight_score=body.min_highlight_score,
+        target_aspect_ratio=body.target_aspect_ratio,
+        notify_whatsapp=body.notify_whatsapp,
+        notify_telegram=body.notify_telegram,
+        whatsapp_number=body.whatsapp_number,
+        language=body.language,
     )
 
     # Create Job with full config
     job = Job(
         video_id=str(video.id),
+        user_id=str(current_user.id),
         config=job_config.to_dict(),
-        notify_whatsapp=request.notify_whatsapp,
-        notify_telegram=request.notify_telegram,
-        whatsapp_number=request.whatsapp_number,
+        notify_whatsapp=body.notify_whatsapp,
+        notify_telegram=body.notify_telegram,
+        whatsapp_number=body.whatsapp_number,
     )
     await job.insert()
 
-    # Enqueue the download task (first step in pipeline)
+    # Increment quota counter
+    await current_user.set({User.used_quota: current_user.used_quota + 1})
+
+    # Enqueue with priority based on plan (0=highest, 9=lowest)
+    task_priority = user_plan["queue_priority"]
     from app.workers.tasks.download import download_video
-    download_video.delay(str(video.id), str(job.id), request.url)
+    download_video.apply_async(
+        args=[str(video.id), str(job.id), body.url],
+        priority=task_priority,
+    )
 
     # Estimate processing time
     est_minutes = max(5, int(metadata.duration_seconds / 60 * 2))
@@ -199,7 +242,9 @@ async def submit_url(request: URLSubmitRequest):
 # ============================================================
 
 @router.post("/upload", response_model=SubmitResponse)
+@limiter.limit("5/minute")
 async def upload_video(
+    request: Request,
     file: UploadFile = File(...),
     quality: str = Query("balanced", description="Quality preset"),
     crop_to_portrait: bool = Query(True),
@@ -207,6 +252,7 @@ async def upload_video(
     max_clips: int = Query(10, ge=1, le=50),
     notify_telegram: bool = Query(True),
     notify_whatsapp: bool = Query(False),
+    current_user: User = Depends(get_current_user),
 ):
     """
     📤 Upload a video file for processing.
@@ -243,6 +289,7 @@ async def upload_video(
         format=file.content_type,
         source_type="upload",
         status="uploaded",
+        user_id=str(current_user.id),
     )
     await video.insert()
 
@@ -258,6 +305,7 @@ async def upload_video(
 
     job = Job(
         video_id=str(video.id),
+        user_id=str(current_user.id),
         config=job_config.to_dict(),
         notify_whatsapp=notify_whatsapp,
         notify_telegram=notify_telegram,
@@ -286,9 +334,10 @@ async def list_videos(
     platform: Optional[str] = Query(None, description="Filter: youtube, tiktok, etc."),
     limit: int = Query(20, ge=1, le=100),
     skip: int = Query(0, ge=0),
+    current_user: User = Depends(get_current_user),
 ):
-    """List all videos with optional filters."""
-    query = {}
+    """List all videos owned by the current user."""
+    query = {"user_id": str(current_user.id)}
     if status:
         query["status"] = status
     if source_type:
@@ -317,10 +366,13 @@ async def list_videos(
 
 
 @router.get("/{video_id}", response_model=VideoResponse)
-async def get_video(video_id: str):
+async def get_video(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """Get video details by ID."""
     video = await Video.get(video_id)
-    if not video:
+    if not video or video.user_id != str(current_user.id):
         raise HTTPException(status_code=404, detail="Video not found")
 
     return VideoResponse(
@@ -339,10 +391,13 @@ async def get_video(video_id: str):
 
 
 @router.delete("/{video_id}")
-async def delete_video(video_id: str):
+async def delete_video(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
     """Delete a video and all associated data (jobs, clips, transcripts)."""
     video = await Video.get(video_id)
-    if not video:
+    if not video or video.user_id != str(current_user.id):
         raise HTTPException(status_code=404, detail="Video not found")
 
     storage = AzureBlobStorage()

@@ -6,13 +6,17 @@ Aggregates all endpoint routers under /api/v1.
 
 from fastapi import APIRouter
 
-from app.api.endpoints import videos, clips, jobs, styles
+from app.api.endpoints import videos, clips, jobs, styles, auth, admin, billing, publish
 from app.api.websocket import router as ws_router
 
 api_router = APIRouter()
 
+api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
 api_router.include_router(videos.router, prefix="/videos", tags=["Videos"])
 api_router.include_router(clips.router, prefix="/clips", tags=["Clips"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
 api_router.include_router(styles.router, prefix="/styles", tags=["Caption Styles"])
+api_router.include_router(admin.router, prefix="/admin", tags=["Admin"])
+api_router.include_router(billing.router, prefix="/billing", tags=["Billing"])
+api_router.include_router(publish.router, prefix="/publish", tags=["Publish"])
 api_router.include_router(ws_router, prefix="/ws", tags=["WebSocket"])

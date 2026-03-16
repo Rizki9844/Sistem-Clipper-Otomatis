@@ -2,7 +2,10 @@
 # AutoClipperPro — Worker Dependencies (Full)
 # ==============================================================
 # Includes everything from requirements.txt PLUS heavy ML/video deps
-# Used by Dockerfile.worker (Koyeb / Azure ACI)
+# Used by Dockerfile.worker (GitHub Actions → Heroku Container Registry)
+# NOTE: Dockerfile.worker installs these individually for better
+#       layer caching and memory control. This file is kept as
+#       the canonical list of worker dependencies.
 # ==============================================================
 
 # ---- Include base API deps ----

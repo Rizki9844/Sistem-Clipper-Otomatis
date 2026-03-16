@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
 import { ToastProvider } from "@/components/Toast";
+import { AuthProvider } from "@/components/AuthProvider";
+import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "AutoClipperPro — AI Video Clipper Dashboard",
@@ -26,15 +27,9 @@ export default function RootLayout({
       </head>
       <body className="bg-gradient-mesh min-h-screen antialiased">
         <ToastProvider>
-          <Sidebar />
-          <main
-            className="min-h-screen transition-all duration-300"
-            style={{ marginLeft: "var(--sidebar-width)" }}
-          >
-            <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
-              {children}
-            </div>
-          </main>
+          <AuthProvider>
+            <AppShell>{children}</AppShell>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>

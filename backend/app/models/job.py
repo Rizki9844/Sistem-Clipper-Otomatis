@@ -18,6 +18,7 @@ class Job(Document):
     """Processing job tracking the full 5-stage pipeline."""
 
     video_id: str
+    user_id: Optional[str] = None  # owner — set when job is created via API
     status: str = Field(default="queued")
     # Status: queued → processing → completed → failed → cancelled
     priority: int = Field(default=5, ge=1, le=10)
@@ -69,6 +70,7 @@ class Job(Document):
         name = "jobs"
         indexes = [
             "video_id",
+            "user_id",
             "status",
             "priority",
             "created_at",
