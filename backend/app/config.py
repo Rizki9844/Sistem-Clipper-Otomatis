@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # --- Google Gemini (FREE — 1M tokens/day) ---
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-pro-preview-05-06"
-    WHISPER_MODEL: str = "base"
+    WHISPER_MODEL: str = "base"          # matches Heroku var WHISPER_MODEL
 
     # --- Sentry ---
     SENTRY_DSN: Optional[str] = None
