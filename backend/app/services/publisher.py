@@ -22,7 +22,7 @@ from app.config import settings
 from app.models.social_account import SocialAccount
 from app.models.publish_job import PublishJob
 from app.models.clip import Clip
-from bson import PydanticObjectId
+from beanie import PydanticObjectId
 
 
 # ---------------------------------------------------------------------------

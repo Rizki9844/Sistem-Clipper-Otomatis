@@ -8,9 +8,8 @@ Access token dienkripsi sebelum disimpan.
 from datetime import datetime
 from typing import Optional
 
-from beanie import Document
+from beanie import Document, PydanticObjectId
 from pydantic import Field
-from bson import PydanticObjectId
 
 
 class SocialAccount(Document):

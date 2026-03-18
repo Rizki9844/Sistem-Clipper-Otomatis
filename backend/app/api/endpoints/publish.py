@@ -26,7 +26,7 @@ from app.models.social_account import SocialAccount
 from app.models.publish_job import PublishJob
 from app.services.publisher import get_oauth_url, connect_platform
 from app.services.plan_config import can_use_platform, get_plan
-from bson import PydanticObjectId
+from beanie import PydanticObjectId
 
 router = APIRouter()
 
