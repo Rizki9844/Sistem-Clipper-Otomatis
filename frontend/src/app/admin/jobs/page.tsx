@@ -106,7 +106,7 @@ export default function AdminJobsPage() {
                 </tr>
               ) : (
                 jobs.map((job) => (
-                  <tr key={job.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                  <tr key={job.id} className="border-b border-white/5 hover:bg-white/2 transition-colors">
                     <td className="px-5 py-4 font-mono text-xs text-slate-400">
                       {job.id.slice(-8)}
                     </td>

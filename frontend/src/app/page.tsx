@@ -38,7 +38,7 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="animate-fadeIn">
         <h1 className="text-3xl font-bold">
-          <span className="bg-gradient-to-r from-violet-400 via-sky-400 to-violet-400 bg-clip-text text-transparent">
+          <span className="bg-linear-to-r from-violet-400 via-sky-400 to-violet-400 bg-clip-text text-transparent">
             Dashboard
           </span>
         </h1>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
               <Link
                 key={job.id}
                 href={`/jobs/${job.id}`}
-                className="flex items-center gap-4 px-6 py-4 border-b border-white/5 hover:bg-white/[0.02] transition-colors group"
+                className="flex items-center gap-4 px-6 py-4 border-b border-white/5 hover:bg-white/2 transition-colors group"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-200 truncate group-hover:text-violet-300 transition-colors">

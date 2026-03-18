@@ -40,7 +40,7 @@ export default function ProgressBar({
             <div className={`w-full ${sizeMap[size]} rounded-full bg-white/5 overflow-hidden`}>
                 <div
                     className={`
-            ${sizeMap[size]} rounded-full bg-gradient-to-r ${gradientMap[accent]}
+            ${sizeMap[size]} rounded-full bg-linear-to-r ${gradientMap[accent]}
             transition-all duration-700 ease-out
             ${animated && clamped > 0 && clamped < 100 ? "progress-bar-animated" : ""}
           `}

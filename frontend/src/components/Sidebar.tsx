@@ -55,7 +55,7 @@ export default function Sidebar() {
                 <Link href="/" className="flex items-center gap-3 group">
                     <span className="text-2xl group-hover:scale-110 transition-transform">🎬</span>
                     <div>
-                        <h1 className="text-lg font-bold bg-gradient-to-r from-violet-400 to-sky-400 bg-clip-text text-transparent">
+                        <h1 className="text-lg font-bold bg-linear-to-r from-violet-400 to-sky-400 bg-clip-text text-transparent">
                             AutoClipperPro
                         </h1>
                         <p className="text-[10px] text-slate-500 tracking-widest uppercase">AI Video Engine</p>
