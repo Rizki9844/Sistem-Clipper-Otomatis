@@ -5,9 +5,10 @@ Centralized settings using Pydantic BaseSettings.
 Reads from .env file and environment variables.
 """
 
+import json
 from typing import Optional
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
@@ -114,6 +115,36 @@ class Settings(BaseSettings):
         "http://localhost:8000",
         "https://*.vercel.app",
     ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: object) -> object:
+        """Accept JSON list or simple comma-separated origin strings."""
+        if isinstance(value, list):
+            return value
+
+        if isinstance(value, str):
+            raw = value.strip()
+            if not raw:
+                return []
+
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, list):
+                    return [str(item).strip() for item in parsed if str(item).strip()]
+            except json.JSONDecodeError:
+                pass
+
+            if raw.startswith("[") and raw.endswith("]"):
+                raw = raw[1:-1]
+
+            return [
+                item.strip().strip("\"'")
+                for item in raw.split(",")
+                if item.strip().strip("\"'")
+            ]
+
+        return value
 
     model_config = {
         "env_file": ".env",
