@@ -7,7 +7,7 @@ import { getToken, removeToken } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
     baseURL: API_URL,
     timeout: 30000,
     headers: {

@@ -259,6 +259,8 @@ export interface AdminJobEntry {
   processing_time: string | null;
   user_email: string;
 }
+
+export interface VideoFilters {
   status?: string;
   source_type?: string;
   platform?: string;

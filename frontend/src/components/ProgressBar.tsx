@@ -3,7 +3,7 @@ interface ProgressBarProps {
     size?: "sm" | "md" | "lg";
     showLabel?: boolean;
     animated?: boolean;
-    accent?: "violet" | "emerald" | "amber" | "sky";
+    accent?: "violet" | "emerald" | "amber" | "sky" | "rose";
 }
 
 const gradientMap = {
@@ -11,6 +11,7 @@ const gradientMap = {
     emerald: "from-emerald-600 to-emerald-400",
     amber: "from-amber-600 to-amber-400",
     sky: "from-sky-600 to-sky-400",
+    rose: "from-rose-600 to-rose-400",
 };
 
 const sizeMap = {
